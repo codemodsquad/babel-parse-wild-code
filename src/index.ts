@@ -5,7 +5,7 @@ import * as Path from 'path'
 import _resolve from 'resolve'
 import { promisify } from 'util'
 import * as defaultBabelParser from '@babel/parser'
-import { ParserOptions } from '@babel/parser'
+import { ParserOptions, ParserPlugin } from '@babel/parser'
 import { readFile as _readFile, readFileSync } from 'fs'
 const readFile = promisify(_readFile)
 
@@ -42,39 +42,40 @@ export class Parser {
   }
 }
 
+const tsPlugins: ParserPlugin[] = [
+  'asyncGenerators',
+  'bigInt',
+  'classPrivateMethods',
+  'classPrivateProperties',
+  'classProperties',
+  'decorators-legacy',
+  'doExpressions',
+  'dynamicImport',
+  'exportDefaultFrom',
+  'exportNamespaceFrom',
+  'functionBind',
+  'functionSent',
+  'importMeta',
+  'nullishCoalescingOperator',
+  'numericSeparator',
+  'objectRestSpread',
+  'optionalCatchBinding',
+  'optionalChaining',
+  ['pipelineOperator', { proposal: 'minimal' }],
+  'throwExpressions',
+  'typescript',
+]
+
 const tsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,
   startLine: 1,
-  tokens: true,
-  plugins: [
-    'asyncGenerators',
-    'bigInt',
-    'classPrivateMethods',
-    'classPrivateProperties',
-    'classProperties',
-    'decorators-legacy',
-    'doExpressions',
-    'dynamicImport',
-    'exportDefaultFrom',
-    'exportNamespaceFrom',
-    'functionBind',
-    'functionSent',
-    'importMeta',
-    'nullishCoalescingOperator',
-    'numericSeparator',
-    'objectRestSpread',
-    'optionalCatchBinding',
-    'optionalChaining',
-    ['pipelineOperator', { proposal: 'minimal' }],
-    'throwExpressions',
-    'typescript',
-  ],
+  plugins: tsPlugins,
 })
 const tsxParser: Parser = new Parser(defaultBabelParser, {
   ...tsParser.parserOpts,
-  plugins: [...(tsParser.parserOpts.plugins || []), 'jsx'],
+  plugins: [...tsPlugins, 'jsx'],
 })
 const jsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
@@ -143,40 +144,41 @@ export function getParserSync(
   file: string,
   options?: Omit<ParserOptions, 'plugins'>
 ): Parser {
-  if (/\.ts$/.test(file)) return tsParser
-  if (/\.tsx$/.test(file)) return tsxParser
+  let result
+  if (/\.ts$/.test(file)) result = tsParser
+  else if (/\.tsx$/.test(file)) result = tsxParser
+  else {
+    const parentDir = Path.dirname(file)
+    result = syncCache.get(parentDir)
 
-  const parentDir = Path.dirname(file)
+    if (!result) {
+      try {
+        const babelPath = _resolve.sync('@babel/core', {
+          basedir: parentDir,
+        })
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const babel = require(babelPath)
+        requiredPaths.push(babelPath)
 
-  let result = syncCache.get(parentDir)
+        const parserPath = _resolve.sync('@babel/parser', {
+          basedir: parentDir,
+        })
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const parser = require(parserPath)
+        requiredPaths.push(parserPath)
 
-  if (!result) {
-    try {
-      const babelPath = _resolve.sync('@babel/core', {
-        basedir: parentDir,
-      })
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const babel = require(babelPath)
-      requiredPaths.push(babelPath)
-
-      const parserPath = _resolve.sync('@babel/parser', {
-        basedir: parentDir,
-      })
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const parser = require(parserPath)
-      requiredPaths.push(parserPath)
-
-      const config = babel.loadOptionsSync({
-        filename: file,
-        cwd: Path.dirname(file),
-        rootMode: 'upward-optional',
-      })
-      result = createParserFromConfig(parser, config)
-    } catch (error) {
-      result = jsParser
+        const config = babel.loadOptionsSync({
+          filename: file,
+          cwd: Path.dirname(file),
+          rootMode: 'upward-optional',
+        })
+        result = createParserFromConfig(parser, config)
+      } catch (error) {
+        result = jsParser
+      }
+      syncCache.set(parentDir, result)
+      asyncCache.set(parentDir, Promise.resolve(result))
     }
-    syncCache.set(parentDir, result)
-    asyncCache.set(parentDir, Promise.resolve(result))
   }
   return !options || isEmpty(options) ? result : result.bindParserOpts(options)
 }
@@ -185,41 +187,43 @@ export async function getParserAsync(
   file: string,
   options?: Omit<ParserOptions, 'plugins'>
 ): Promise<Parser> {
-  if (/\.ts$/.test(file)) return tsParser
-  if (/\.tsx$/.test(file)) return tsxParser
+  let promise
+  if (/\.ts$/.test(file)) promise = Promise.resolve(tsParser)
+  else if (/\.tsx$/.test(file)) promise = Promise.resolve(tsxParser)
+  else {
+    const parentDir = Path.dirname(file)
 
-  const parentDir = Path.dirname(file)
+    promise = asyncCache.get(parentDir)
 
-  let promise = asyncCache.get(parentDir)
+    if (!promise) {
+      promise = (async (): Promise<Parser> => {
+        let result
+        try {
+          const babelPath = await resolve('@babel/core', {
+            basedir: parentDir,
+          })
+          const babel = await import(babelPath)
+          requiredPaths.push(babelPath)
 
-  if (!promise) {
-    promise = (async (): Promise<Parser> => {
-      let result
-      try {
-        const babelPath = await resolve('@babel/core', {
-          basedir: parentDir,
-        })
-        const babel = await import(babelPath)
-        requiredPaths.push(babelPath)
+          const parserPath = await resolve('@babel/parser', {
+            basedir: parentDir,
+          })
+          const parser = await import(parserPath)
+          requiredPaths.push(parserPath)
 
-        const parserPath = await resolve('@babel/parser', {
-          basedir: parentDir,
-        })
-        const parser = await import(parserPath)
-        requiredPaths.push(parserPath)
-
-        const config = await babel.loadOptionsAsync({
-          filename: file,
-          cwd: process.cwd(),
-        })
-        result = createParserFromConfig(parser, config)
-      } catch (error) {
-        result = jsParser
-      }
-      syncCache.set(parentDir, result)
-      return result
-    })()
-    asyncCache.set(parentDir, promise)
+          const config = await babel.loadOptionsAsync({
+            filename: file,
+            cwd: parentDir,
+          })
+          result = createParserFromConfig(parser, config)
+        } catch (error) {
+          result = jsParser
+        }
+        syncCache.set(parentDir, result)
+        return result
+      })()
+      asyncCache.set(parentDir, promise)
+    }
   }
   const result = await promise
   return !options || isEmpty(options) ? result : result.bindParserOpts(options)

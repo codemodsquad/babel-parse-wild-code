@@ -19,7 +19,10 @@ const tsParser = {
 
 const tsxParser = {
   parse: (code: string, options?: Omit<ParserOptions, 'plugins'>): t.File =>
-    defaultParse(code, { ...options, plugins: ['typescript', 'jsx'] }),
+    defaultParse(code, {
+      ...options,
+      plugins: ['typescript', 'jsx'],
+    }),
 }
 
 const jsParser = {
@@ -29,7 +32,6 @@ const jsParser = {
       allowImportExportEverywhere: true,
       allowReturnOutsideFunction: true,
       startLine: 1,
-      tokens: true,
       ...options,
       plugins: [
         ['flow', { all: true }],
@@ -172,16 +174,22 @@ export async function getParserAsync(file: string): Promise<Parser> {
 
 export function parseSync(
   file: string,
-  { encoding = 'utf8' }: { encoding?: BufferEncoding } = {}
+  {
+    encoding = 'utf8',
+    ...options
+  }: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'> = {}
 ): t.File {
   const parser = getParserSync(file)
-  return parser.parse(readFileSync(file, encoding))
+  return parser.parse(readFileSync(file, encoding), options)
 }
 
 export async function parseAsync(
   file: string,
-  { encoding = 'utf8' }: { encoding?: BufferEncoding } = {}
+  {
+    encoding = 'utf8',
+    ...options
+  }: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'> = {}
 ): Promise<t.File> {
   const parser = await getParserAsync(file)
-  return parser.parse(await readFile(file, encoding))
+  return parser.parse(await readFile(file, encoding), options)
 }

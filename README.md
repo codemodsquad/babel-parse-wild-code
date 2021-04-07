@@ -16,7 +16,7 @@ with reasonable default options (copied from https://github.com/facebook/jscodes
 
 # API
 
-## `parseSync(file: string, options?: { encoding?: BufferEncoding }): File`
+## `parseSync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): File`
 
 ```ts
 import { parseSync } from '@codemodsquad/parse-with-babel'
@@ -24,9 +24,9 @@ import { parseSync } from '@codemodsquad/parse-with-babel'
 
 Parses the given file synchronously, returning the `File` node.
 
-`encoding` defaults to `utf8`.
+`encoding` defaults to `utf8`. The remaining options are passed to `@babel/parser`'s `parse` function.
 
-## `parseAsync(file: string, options?: { encoding?: BufferEncoding }): Promise<File>`
+## `parseAsync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): Promise<File>`
 
 ```ts
 import { parseAsync } from '@codemodsquad/parse-with-babel'
@@ -34,7 +34,7 @@ import { parseAsync } from '@codemodsquad/parse-with-babel'
 
 Parses the given file asynchronously, returning a `Promise` that will resolve to the `File` node.
 
-`encoding` defaults to `utf8`.
+`encoding` defaults to `utf8`. The remaining options are passed to `@babel/parser`'s `parse` function.
 
 ## `clearCache(): void`
 

@@ -4,5 +4,11 @@ export type Parser = { parse: (code: string, options?: any) => any }
 declare export function clearCache(): void
 declare export function getParserSync(file: string): Parser
 declare export function getParserAsync(file: string): Promise<Parser>
-declare export function parseSync(file: string): any
-declare export function parseAsync(file: string): Promise<any>
+declare export function parseSync(
+  file: string,
+  options?: { encoding?: string }
+): any
+declare export function parseAsync(
+  file: string,
+  options?: { encoding?: string }
+): Promise<any>

@@ -17,6 +17,49 @@ const tsParser = {
     defaultParse(code, { ...options, plugins: ['typescript'] }),
 }
 
+const tsxParser = {
+  parse: (code: string, options?: Omit<ParserOptions, 'plugins'>): t.File =>
+    defaultParse(code, { ...options, plugins: ['typescript', 'jsx'] }),
+}
+
+const jsParser = {
+  parse: (code: string, options?: Omit<ParserOptions, 'plugins'>): t.File =>
+    defaultParse(code, {
+      sourceType: 'module',
+      allowImportExportEverywhere: true,
+      allowReturnOutsideFunction: true,
+      startLine: 1,
+      tokens: true,
+      ...options,
+      plugins: [
+        ['flow', { all: true }],
+        'flowComments',
+        'jsx',
+        'asyncGenerators',
+        'bigInt',
+        'classProperties',
+        'classPrivateProperties',
+        'classPrivateMethods',
+        ['decorators', { decoratorsBeforeExport: false }],
+        'doExpressions',
+        'dynamicImport',
+        'exportDefaultFrom',
+        'exportNamespaceFrom',
+        'functionBind',
+        'functionSent',
+        'importMeta',
+        'logicalAssignment',
+        'nullishCoalescingOperator',
+        'numericSeparator',
+        'objectRestSpread',
+        'optionalCatchBinding',
+        'optionalChaining',
+        ['pipelineOperator', { proposal: 'minimal' }],
+        'throwExpressions',
+      ],
+    }),
+}
+
 const resolve: (
   id: string,
   opts: _resolve.AsyncOpts
@@ -51,7 +94,8 @@ function createParser(parser: any, options: any): Parser {
 }
 
 export function getParserSync(file: string): Parser {
-  if (/\.tsx?$/.test(file)) return tsParser
+  if (/\.ts$/.test(file)) return tsParser
+  if (/\.tsx$/.test(file)) return tsxParser
 
   const parentDir = Path.dirname(file)
 
@@ -79,24 +123,25 @@ export function getParserSync(file: string): Parser {
       rootMode: 'upward-optional',
     })
     result = createParser(parser, options)
-    syncCache.set(parentDir, result)
-    asyncCache.set(parentDir, Promise.resolve(result))
-    return result
   } catch (error) {
-    error.message = `failed to get babel or config for file ${file}: ${error.message}`
-    throw error
+    result = jsParser
   }
+  syncCache.set(parentDir, result)
+  asyncCache.set(parentDir, Promise.resolve(result))
+  return result
 }
 
 export async function getParserAsync(file: string): Promise<Parser> {
-  if (/\.tsx?$/.test(file)) return tsParser
+  if (/\.ts$/.test(file)) return tsParser
+  if (/\.tsx$/.test(file)) return tsxParser
 
   const parentDir = Path.dirname(file)
 
-  let result = asyncCache.get(parentDir)
+  let promise = asyncCache.get(parentDir)
 
-  if (result) return await result
-  result = (async (): Promise<Parser> => {
+  if (promise) return await promise
+  promise = (async (): Promise<Parser> => {
+    let result
     try {
       const babelPath = await resolve('@babel/core', {
         basedir: parentDir,
@@ -114,16 +159,15 @@ export async function getParserAsync(file: string): Promise<Parser> {
         filename: file,
         cwd: process.cwd(),
       })
-      const result = createParser(parser, options)
-      syncCache.set(parentDir, result)
-      return result
+      result = createParser(parser, options)
     } catch (error) {
-      error.message = `failed to get babel or config for file ${file}: ${error.message}`
-      throw error
+      result = jsParser
     }
+    syncCache.set(parentDir, result)
+    return result
   })()
-  asyncCache.set(parentDir, result)
-  return await result
+  asyncCache.set(parentDir, promise)
+  return await promise
 }
 
 export function parseSync(

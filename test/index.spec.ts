@@ -8,7 +8,10 @@ const fixturesDir = Path.resolve(__dirname, 'fixtures')
 
 before(async function () {
   this.timeout(120000)
-  await spawn('yarn', { cwd: fixturesDir, stdio: 'inherit' })
+  await spawn('yarn', {
+    cwd: Path.join(fixturesDir, 'babelPipeline'),
+    stdio: 'inherit',
+  })
 })
 
 describe('parseSync', function () {

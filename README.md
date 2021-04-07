@@ -11,6 +11,9 @@ the Babel config, because `@babel/core` was accidentally re-doing config-loading
 So this package presents an easy-to-use API for loading the installed version of `@babel/parser` in the user's project, loading their
 Babel config, and fully resolving the parser options.
 
+If loading stuff from the user's directory fails for any reason, it falls back to `@babel/parser` from this package's own dependencies
+with reasonable default options (copied from https://github.com/facebook/jscodeshift/blob/master/parser/babylon.js)
+
 # API
 
 ## `parseSync(file: string, options?: { encoding?: BufferEncoding }): File`

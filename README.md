@@ -1,11 +1,18 @@
-# @codemodsquad/parse-with-babel
+# babel-parse-wild-code
 
 Provides an easy-to-use API for parsing users' js/ts/tsx files using their project's installed Babel version and config.
 This way it won't fail if they're using funky features like the smart pipeline operator. This is a big problem for codemod
 tools; for example, `jscodeshift` would choke on the smart pipeline operator unless you pass a custom parser. I want my
 codemod tools to just work.
 
-If `@codemodsquad/parse-with-babel` fails to load `@babel/core`, `@babel/parser`, or the Babel config from the user's
+Note: only Babel 7 is currently supported.
+
+`babel-parse-wild-code` also improves performance. Until recently, doing `require('@babel/core').loadOptionsAsync` and passing that config
+to a bunch of `require('@babel/core').parseAsync` calls didn't improve performance as expected; `parseAsync` was accidentally re-doing
+a lot of the work that had already been done by `loadOptionsAsync`. That bug has been fixed since I reported it, but `babel-parse-wild-code`
+works around this for older versions of Babel 7 by extracting the options for `@babel/parser` from the user's Babel config.
+
+If `babel-parse-wild-code` fails to load `@babel/core`, `@babel/parser`, or the Babel config from the user's
 project, or the file is ts/tsx, it falls back to parsing with reasonable default options.
 
 # API
@@ -13,7 +20,7 @@ project, or the file is ts/tsx, it falls back to parsing with reasonable default
 ## `parseSync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): File`
 
 ```ts
-import { parseSync } from '@codemodsquad/parse-with-babel'
+import { parseSync } from 'babel-parse-wild-code'
 ```
 
 Parses the given file synchronously, returning the `File` node.
@@ -23,7 +30,7 @@ Parses the given file synchronously, returning the `File` node.
 ## `parseAsync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): Promise<File>`
 
 ```ts
-import { parseAsync } from '@codemodsquad/parse-with-babel'
+import { parseAsync } from 'babel-parse-wild-code'
 ```
 
 Parses the given file asynchronously, returning a `Promise` that will resolve to the `File` node.
@@ -41,34 +48,48 @@ automatically when the user's Babel version or config changes, but setting up th
 complicated. Clearing the cache before you parse a bunch of files is simpler and won't have a huge
 impact on performance.
 
-## `type Parser`
-
-```ts
-import { type Parser } from '@codemodsquad/parse-with-babel'
-```
-
-```ts
-export type Parser = {
-  parserOpts: ParserOptions
-  parse: (code: string) => t.File
-}
-```
-
-`options` is additional options for `@babel/parser`'s `parse` function. For example when working
-with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
-
 ## `getParserSync(file: string, options?: Omit<ParserOptions, 'plugins'>): Parser`
 
 ```ts
-import { getParserSync } from '@codemodsquad/parse-with-babel'
+import { getParserSync } from 'babel-parse-wild-code'
 ```
 
 Gets a fully-configured parser for the given file synchronously.
 
+`options` is additional options for `@babel/parser`'s `parse` function. For example when working
+with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
+
 ## `getParserAsync(file: string, options?: Omit<ParserOptions, 'plugins'>): Promise<Parser>`
 
 ```ts
-import { getParserSync } from '@codemodsquad/parse-with-babel'
+import { getParserSync } from 'babel-parse-wild-code'
 ```
 
 Gets a fully-configured parser for the given file asynchronously.
+
+`options` is additional options for `@babel/parser`'s `parse` function. For example when working
+with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
+
+## `class Parser`
+
+```ts
+import { Parser } from 'babel-parse-wild-code'
+```
+
+Type defs:
+
+```ts
+import * as defaultBabelParser from '@babel/parser'
+
+type BabelParser = Pick<typeof defaultBabelParser, 'parse' | 'parseExpression'>
+
+export class Parser {
+  readonly babelParser: BabelParser
+  readonly parserOpts: ParserOptions
+
+  constructor(babelParser: BabelParser, parserOpts: ParserOptions)
+  parse(code: string, parserOpts?: ParserOptions): t.File
+  parseExpression(code: string, parserOpts?: ParserOptions): t.Expression
+  bindParserOpts(parserOpts: ParserOptions): Parser
+}
+```

@@ -1,5 +1,5 @@
 {
-  "name": "@codemodsquad/parse-with-babel",
+  "name": "babel-parse-wild-code",
   "version": "0.0.0-development",
   "description": "parse a file in a foreign directory with babel, using ambient babel config",
   "main": "index.js",
@@ -68,14 +68,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/codemodsquad/parse-with-babel.git"
+    "url": "https://github.com/codemodsquad/babel-parse-wild-code.git"
   },
   "author": "Andy Edwards",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/codemodsquad/parse-with-babel/issues"
+    "url": "https://github.com/codemodsquad/babel-parse-wild-code/issues"
   },
-  "homepage": "https://github.com/codemodsquad/parse-with-babel#readme",
+  "homepage": "https://github.com/codemodsquad/babel-parse-wild-code#readme",
   "devDependencies": {
     "@babel/cli": "^7.12.10",
     "@babel/core": "^7.12.10",

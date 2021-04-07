@@ -1,17 +1,40 @@
 // @flow
 
-export type Parser = {
-  parserOpts: any,
-  parse: (code: string) => any,
+type ParserOptions = any
+type File = any
+type Expression = any
+
+interface BabelParser {
+  parse(code: string, parserOpts: ParserOptions): File;
+  parseExpression(code: string, parserOpts: ParserOptions): Expression;
 }
+
+declare export class Parser {
+  +babelParser: BabelParser;
+  +parserOpts: ParserOptions;
+
+  constructor(babelParser: BabelParser, parserOpts: ParserOptions): void;
+
+  parse(code: string, parserOpts?: ParserOptions): File;
+  parseExpression(code: string, parserOpts?: ParserOptions): Expression;
+
+  bindParserOpts(parserOpts: ParserOptions): Parser;
+}
+
 declare export function clearCache(): void
-declare export function getParserSync(file: string): Parser
-declare export function getParserAsync(file: string): Promise<Parser>
+declare export function getParserSync(
+  file: string,
+  options: ParserOptions
+): Parser
+declare export function getParserAsync(
+  file: string,
+  options: ParserOptions
+): Promise<Parser>
 declare export function parseSync(
   file: string,
   options?: { encoding?: string }
-): any
+): File
 declare export function parseAsync(
   file: string,
   options?: { encoding?: string }
-): Promise<any>
+): Promise<File>

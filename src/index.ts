@@ -4,23 +4,45 @@ import * as t from '@babel/types'
 import * as Path from 'path'
 import _resolve from 'resolve'
 import { promisify } from 'util'
-import { parse as defaultParse, ParserOptions } from '@babel/parser'
+import * as defaultBabelParser from '@babel/parser'
+import { ParserOptions } from '@babel/parser'
 import { readFile as _readFile, readFileSync } from 'fs'
 const readFile = promisify(_readFile)
 
-export type Parser = {
-  parse: (code: string) => t.File
-  parserOpts: ParserOptions
+function isEmpty(obj: any): boolean {
+  for (const key in obj) return false
+  return true
 }
 
-function createParser(parserOpts: ParserOptions): Parser {
-  return {
-    parserOpts,
-    parse: (code: string): t.File => defaultParse(code, parserOpts),
+type BabelParser = Pick<typeof defaultBabelParser, 'parse' | 'parseExpression'>
+
+export class Parser {
+  readonly babelParser: BabelParser
+  readonly parserOpts: ParserOptions
+
+  constructor(babelParser: BabelParser, parserOpts: ParserOptions) {
+    this.babelParser = babelParser
+    this.parserOpts = parserOpts
+  }
+
+  parse(code: string, parserOpts?: ParserOptions): t.File {
+    return parserOpts
+      ? this.bindParserOpts(parserOpts).parse(code)
+      : this.babelParser.parse(code, this.parserOpts)
+  }
+
+  parseExpression(code: string, parserOpts?: ParserOptions): t.Expression {
+    return parserOpts
+      ? this.bindParserOpts(parserOpts).parseExpression(code)
+      : this.babelParser.parseExpression(code, this.parserOpts)
+  }
+
+  bindParserOpts(parserOpts: ParserOptions): Parser {
+    return new Parser(this.babelParser, { ...this.parserOpts, ...parserOpts })
   }
 }
 
-const tsParser: Parser = createParser({
+const tsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,
@@ -50,11 +72,11 @@ const tsParser: Parser = createParser({
     'typescript',
   ],
 })
-const tsxParser: Parser = createParser({
+const tsxParser: Parser = new Parser(defaultBabelParser, {
   ...tsParser.parserOpts,
   plugins: [...(tsParser.parserOpts.plugins || []), 'jsx'],
 })
-const jsParser: Parser = createParser({
+const jsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,
@@ -105,7 +127,7 @@ export function clearCache(): void {
   requiredPaths.length = 0
 }
 
-function createParserFromConfig(parser: any, config: any): Parser {
+function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
   const { plugins, sourceType } = config
   const opts = {
     parserOpts: { plugins: [], sourceType },
@@ -114,7 +136,7 @@ function createParserFromConfig(parser: any, config: any): Parser {
   for (const { manipulateOptions } of plugins) {
     manipulateOptions?.(opts, opts.parserOpts)
   }
-  return createParser(opts.parserOpts)
+  return new Parser(babelParser, opts.parserOpts)
 }
 
 export function getParserSync(
@@ -156,12 +178,12 @@ export function getParserSync(
     syncCache.set(parentDir, result)
     asyncCache.set(parentDir, Promise.resolve(result))
   }
-  return options ? createParser({ ...result.parserOpts, ...options }) : result
+  return !options || isEmpty(options) ? result : result.bindParserOpts(options)
 }
 
 export async function getParserAsync(
   file: string,
-  options?: ParserOptions
+  options?: Omit<ParserOptions, 'plugins'>
 ): Promise<Parser> {
   if (/\.ts$/.test(file)) return tsParser
   if (/\.tsx$/.test(file)) return tsxParser
@@ -200,7 +222,7 @@ export async function getParserAsync(
     asyncCache.set(parentDir, promise)
   }
   const result = await promise
-  return options ? createParser({ ...result.parserOpts, ...options }) : result
+  return !options || isEmpty(options) ? result : result.bindParserOpts(options)
 }
 
 export function parseSync(

@@ -1,18 +1,12 @@
 # @codemodsquad/parse-with-babel
 
-One of the challenges of making codemod tools is tolerating the wide variety of JS syntaxes users' code might be written in.
-They may be using `@babel/plugin-proposal-pipeline-operator`, which allows them to choose between three different syntax proposals.
-They may be using a newer version of Babel than was available when you released your codemod.
+Provides an easy-to-use API for parsing users' js/ts/tsx files using their project's installed Babel version and config.
+This way it won't fail if they're using funky features like the smart pipeline operator. This is a big problem for codemod
+tools; for example, `jscodeshift` would choke on the smart pipeline operator unless you pass a custom parser. I want my
+codemod tools to just work.
 
-Basically you need to load the version of Babel they have installed in their project, and load their project's Babel config.
-This presents another snag: until issues I reported recently were fixed, parsing a bunch of files was slow even if you fully preload
-the Babel config, because `@babel/core` was accidentally re-doing config-loading operations on each `parse*` call in that case.
-
-So this package presents an easy-to-use API for loading the installed version of `@babel/parser` in the user's project, loading their
-Babel config, and fully resolving the parser options.
-
-If loading stuff from the user's directory fails for any reason, it falls back to `@babel/parser` from this package's own dependencies
-with reasonable default options (copied from https://github.com/facebook/jscodeshift/blob/master/parser/babylon.js)
+If `@codemodsquad/parse-with-babel` fails to load `@babel/core`, `@babel/parser`, or the Babel config from the user's
+project, or the file is ts/tsx, it falls back to parsing with reasonable default options.
 
 # API
 
@@ -55,14 +49,15 @@ import { type Parser } from '@codemodsquad/parse-with-babel'
 
 ```ts
 export type Parser = {
-  parse: (code: string, options?: Omit<ParserOptions, 'plugins'>) => t.File
+  parserOpts: ParserOptions
+  parse: (code: string) => t.File
 }
 ```
 
 `options` is additional options for `@babel/parser`'s `parse` function. For example when working
 with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
 
-## `getParserSync(file: string): Parser`
+## `getParserSync(file: string, options?: Omit<ParserOptions, 'plugins'>): Parser`
 
 ```ts
 import { getParserSync } from '@codemodsquad/parse-with-babel'
@@ -70,7 +65,7 @@ import { getParserSync } from '@codemodsquad/parse-with-babel'
 
 Gets a fully-configured parser for the given file synchronously.
 
-## `getParserAsync(file: string): Promise<Parser>`
+## `getParserAsync(file: string, options?: Omit<ParserOptions, 'plugins'>): Promise<Parser>`
 
 ```ts
 import { getParserSync } from '@codemodsquad/parse-with-babel'

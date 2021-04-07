@@ -1,6 +1,9 @@
 // @flow
 
-export type Parser = { parse: (code: string, options?: any) => any }
+export type Parser = {
+  parserOpts: any,
+  parse: (code: string) => any,
+}
 declare export function clearCache(): void
 declare export function getParserSync(file: string): Parser
 declare export function getParserAsync(file: string): Promise<Parser>

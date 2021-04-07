@@ -1,31 +1,76 @@
-# typescript-library-skeleton
+# @codemodsquad/parse-with-babel
 
-[![CircleCI](https://circleci.com/gh/jedwards1211/typescript-library-skeleton.svg?style=svg)](https://circleci.com/gh/jedwards1211/typescript-library-skeleton)
-[![Coverage Status](https://codecov.io/gh/jedwards1211/typescript-library-skeleton/branch/master/graph/badge.svg)](https://codecov.io/gh/jedwards1211/typescript-library-skeleton)
-[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
-[![npm version](https://badge.fury.io/js/typescript-library-skeleton.svg)](https://badge.fury.io/js/typescript-library-skeleton)
+One of the challenges of making codemod tools is tolerating the wide variety of JS syntaxes users' code might be written in.
+They may be using `@babel/plugin-proposal-pipeline-operator`, which allows them to choose between three different syntax proposals.
+They may be using a newer version of Babel than was available when you released your codemod.
 
-This is my personal skeleton for creating an typescript library npm package. You are welcome to use it.
+Basically you need to load the version of Babel they have installed in their project, and load their project's Babel config.
+This presents another snag: until issues I reported recently were fixed, parsing a bunch of files was slow even if you fully preload
+the Babel config, because `@babel/core` was accidentally re-doing config-loading operations on each `parse*` call in that case.
 
-## Quick start
+So this package presents an easy-to-use API for loading the installed version of `@babel/parser` in the user's project, loading their
+Babel config, and fully resolving the parser options.
 
-```sh
-npx 0-60 clone https://github.com/jedwards1211/typescript-library-skeleton.git
+# API
+
+## `parseSync(file: string, options?: { encoding?: BufferEncoding }): File`
+
+```ts
+import { parseSync } from '@codemodsquad/parse-with-babel'
 ```
 
-## Tools used
+Parses the given file synchronously, returning the `File` node.
 
-- babel 7
-- typescript
-- mocha
-- chai
-- istanbul
-- nyc
-- eslint
-- prettier
-- husky
-- semantic-release
-- renovate
-- Circle CI
-- Codecov.io
+`encoding` defaults to `utf8`.
+
+## `parseAsync(file: string, options?: { encoding?: BufferEncoding }): Promise<File>`
+
+```ts
+import { parseAsync } from '@codemodsquad/parse-with-babel'
+```
+
+Parses the given file asynchronously, returning a `Promise` that will resolve to the `File` node.
+
+`encoding` defaults to `utf8`.
+
+## `clearCache(): void`
+
+Instances of `@babel/core`, `@babel/parser` and parser options are cached on a per-directory basis.
+Calling `clearCache()` clears this cache, and deletes instances of `@babel/core` and `@babel/parser`
+from `require.cache`.
+
+You should probably do this before any bulk parsing operation. It would be nice to bust the cache
+automatically when the user's Babel version or config changes, but setting up the watchers would be
+complicated. Clearing the cache before you parse a bunch of files is simpler and won't have a huge
+impact on performance.
+
+## `type Parser`
+
+```ts
+import { type Parser } from '@codemodsquad/parse-with-babel'
+```
+
+```ts
+export type Parser = {
+  parse: (code: string, options?: Omit<ParserOptions, 'plugins'>) => t.File
+}
+```
+
+`options` is additional options for `@babel/parser`'s `parse` function. For example when working
+with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
+
+## `getParserSync(file: string): Parser`
+
+```ts
+import { getParserSync } from '@codemodsquad/parse-with-babel'
+```
+
+Gets a fully-configured parser for the given file synchronously.
+
+## `getParserAsync(file: string): Promise<Parser>`
+
+```ts
+import { getParserSync } from '@codemodsquad/parse-with-babel'
+```
+
+Gets a fully-configured parser for the given file asynchronously.

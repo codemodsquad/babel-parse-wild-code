@@ -1,7 +1,7 @@
 {
-  "name": "typescript-library-skeleton",
+  "name": "@codemodsquad/parse-with-babel",
   "version": "0.0.0-development",
-  "description": "my personal ES2015 library project skeleton",
+  "description": "parse a file in a foreign directory with babel, using ambient babel config",
   "main": "index.js",
   "sideEffects": false,
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "config": {
     "lint": "--cache --ext .js,.ts src test",
-    "mocha": "--extension js --extension ts test/configure.js 'src/**/*.spec.ts' 'test/**/*.ts'",
+    "mocha": "--extension js --extension ts test/configure.js 'src/**/*.spec.ts' 'test/*.ts'",
     "prettier": ".babelrc.js *.{json,md} {src,test}/**/*.{js,ts,flow}",
     "commitizen": {
       "path": "cz-conventional-changelog"
@@ -68,17 +68,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jedwards1211/typescript-library-skeleton.git"
+    "url": "https://github.com/codemodsquad/parse-with-babel.git"
   },
-  "keywords": [
-    "typescript"
-  ],
   "author": "Andy Edwards",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jedwards1211/typescript-library-skeleton/issues"
+    "url": "https://github.com/codemodsquad/parse-with-babel/issues"
   },
-  "homepage": "https://github.com/jedwards1211/typescript-library-skeleton#readme",
+  "homepage": "https://github.com/codemodsquad/parse-with-babel#readme",
   "devDependencies": {
     "@babel/cli": "^7.12.10",
     "@babel/core": "^7.12.10",
@@ -99,8 +96,10 @@
     "@jedwards1211/eslint-config": "^2.0.2",
     "@jedwards1211/eslint-config-typescript": "^2.0.2",
     "@types/chai": "^4.2.14",
+    "@types/fs-extra": "^9.0.10",
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.22",
+    "@types/resolve": "^1.20.0",
     "@typescript-eslint/eslint-plugin": "^4.14.1",
     "@typescript-eslint/parser": "^4.14.1",
     "@typescript-eslint/typescript-estree": "^4.14.1",
@@ -113,6 +112,7 @@
     "eslint": "^7.18.0",
     "eslint-config-prettier": "^7.2.0",
     "flow-bin": "^0.144.0",
+    "fs-extra": "^9.1.0",
     "husky": "^4.3.8",
     "istanbul": "^0.4.5",
     "lint-staged": "^10.5.3",
@@ -120,11 +120,15 @@
     "nyc": "^15.1.0",
     "prettier": "^2.2.1",
     "prettier-eslint": "^12.0.0",
+    "promisify-child-process": "^4.1.1",
     "rimraf": "^3.0.2",
     "semantic-release": "^17.3.7",
-    "typescript": "^4.1.3"
+    "typescript": "^4.2.3"
   },
   "dependencies": {
-    "@babel/runtime": "^7.12.5"
+    "@babel/parser": "^7.13.13",
+    "@babel/runtime": "^7.12.5",
+    "@babel/types": "^7.13.14",
+    "resolve": "^1.20.0"
   }
 }

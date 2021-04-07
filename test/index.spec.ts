@@ -1,7 +1,33 @@
 /* eslint-env mocha */
 
-describe('test setup', () => {
-  it('works', () => {
-    // fill me out!
+import * as Path from 'path'
+import { parseSync, parseAsync } from '../src'
+import { spawn } from 'promisify-child-process'
+
+const fixturesDir = Path.resolve(__dirname, 'fixtures')
+
+before(async function () {
+  this.timeout(120000)
+  await spawn('yarn', { cwd: fixturesDir, stdio: 'inherit' })
+})
+
+describe('parseSync', function () {
+  this.timeout(10000)
+
+  it('works', async () => {
+    parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.js'))
+  })
+  it('works on ts file', async () => {
+    parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.ts'))
+  })
+})
+describe(`parseAsync`, function () {
+  this.timeout(10000)
+
+  it('works', async () => {
+    await parseAsync(Path.join(fixturesDir, 'babelPipeline', 'test.js'))
+  })
+  it('works on ts file', async () => {
+    await parseAsync(Path.join(fixturesDir, 'babelPipeline', 'test.ts'))
   })
 })

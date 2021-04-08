@@ -93,3 +93,27 @@ export class Parser {
   bindParserOpts(parserOpts: ParserOptions): Parser
 }
 ```
+
+## `tsParser`
+
+```ts
+import { tsParser } from 'babel-parse-wild-code'
+```
+
+The parser used for `.ts` files.
+
+## `tsxParser`
+
+```ts
+import { tsxParser } from 'babel-parse-wild-code'
+```
+
+The parser used for `.tsx` files.
+
+## `jsParser`
+
+```ts
+import { jsParser } from 'babel-parse-wild-code'
+```
+
+The fallback parser used for parsing `.js` files when `babel-parse-wild-code` failed to load Babel modules or config for the file's directory.

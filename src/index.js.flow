@@ -21,6 +21,10 @@ declare export class Parser {
   bindParserOpts(parserOpts: ParserOptions): Parser;
 }
 
+declare export var tsParser: Parser
+declare export var tsxParser: Parser
+declare export var jsParser: Parser
+
 declare export function clearCache(): void
 declare export function getParserSync(
   file: string,

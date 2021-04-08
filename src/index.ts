@@ -66,18 +66,18 @@ const tsPlugins: ParserPlugin[] = [
   'typescript',
 ]
 
-const tsParser: Parser = new Parser(defaultBabelParser, {
+export const tsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,
   startLine: 1,
   plugins: tsPlugins,
 })
-const tsxParser: Parser = new Parser(defaultBabelParser, {
+export const tsxParser: Parser = new Parser(defaultBabelParser, {
   ...tsParser.parserOpts,
   plugins: [...tsPlugins, 'jsx'],
 })
-const jsParser: Parser = new Parser(defaultBabelParser, {
+export const jsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
   allowReturnOutsideFunction: true,

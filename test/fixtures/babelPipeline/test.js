@@ -1,3 +1,5 @@
+type Foo = number
+
 let person = { score: 25 }
 
 let newScore =

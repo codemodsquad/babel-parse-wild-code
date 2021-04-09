@@ -3,19 +3,10 @@
 import * as Path from 'path'
 import { parseSync, parseAsync, getParserSync, clearCache } from '../src'
 import fs from 'fs-extra'
-import { spawn } from 'promisify-child-process'
 import { expect } from 'chai'
 import os from 'os'
 
 const fixturesDir = Path.resolve(__dirname, 'fixtures')
-
-before(async function () {
-  this.timeout(120000)
-  await spawn('yarn', {
-    cwd: Path.join(fixturesDir, 'babelPipeline'),
-    stdio: 'inherit',
-  })
-})
 
 describe('parseSync', function () {
   this.timeout(10000)
@@ -134,8 +125,10 @@ describe(`Parser`, function () {
     it(`passing options works`, async function () {
       const file = Path.join(fixturesDir, 'babelPipeline', 'test.ts')
       const parser = getParserSync(file)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((parser.parseExpression('foo(bar)') as any).tokens).not.to.exist
       expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (parser.parseExpression('foo(bar)', { tokens: true }) as any).tokens
       ).to.exist
     })

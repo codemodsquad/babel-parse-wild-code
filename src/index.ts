@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import * as t from '@babel/types'
 import * as Path from 'path'
 import _resolve from 'resolve'
@@ -9,6 +7,7 @@ import { ParserOptions, ParserPlugin } from '@babel/parser'
 import { readFile as _readFile, readFileSync } from 'fs'
 const readFile = promisify(_readFile)
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isEmpty(obj: any): boolean {
   for (const key in obj) return false
   return true
@@ -113,6 +112,7 @@ export const jsParser: Parser = new Parser(defaultBabelParser, {
 const resolve: (
   id: string,
   opts: _resolve.AsyncOpts
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ) => Promise<string> = promisify(_resolve as any)
 
 const requiredPaths: string[] = []
@@ -128,6 +128,7 @@ export function clearCache(): void {
   requiredPaths.length = 0
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
   const { plugins, sourceType } = config
   const opts = {
@@ -145,40 +146,39 @@ export function getParserSync(
   options?: Omit<ParserOptions, 'plugins'>
 ): Parser {
   let result
-  if (/\.ts$/.test(file)) result = tsParser
-  else if (/\.tsx$/.test(file)) result = tsxParser
-  else {
-    const parentDir = Path.dirname(file)
-    result = syncCache.get(parentDir)
+  const parentDir = Path.dirname(file)
+  const extname = Path.extname(file)
+  const cacheKey = `${parentDir}${Path.delimiter}${extname}`
+  result = syncCache.get(cacheKey)
 
-    if (!result) {
-      try {
-        const babelPath = _resolve.sync('@babel/core', {
-          basedir: parentDir,
-        })
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const babel = require(babelPath)
-        requiredPaths.push(babelPath)
+  if (!result) {
+    try {
+      const babelPath = _resolve.sync('@babel/core', {
+        basedir: parentDir,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const babel = require(babelPath)
+      requiredPaths.push(babelPath)
 
-        const parserPath = _resolve.sync('@babel/parser', {
-          basedir: parentDir,
-        })
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const parser = require(parserPath)
-        requiredPaths.push(parserPath)
+      const parserPath = _resolve.sync('@babel/parser', {
+        basedir: parentDir,
+      })
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const parser = require(parserPath)
+      requiredPaths.push(parserPath)
 
-        const config = babel.loadOptionsSync({
-          filename: file,
-          cwd: Path.dirname(file),
-          rootMode: 'upward-optional',
-        })
-        result = createParserFromConfig(parser, config)
-      } catch (error) {
-        result = jsParser
-      }
-      syncCache.set(parentDir, result)
-      asyncCache.set(parentDir, Promise.resolve(result))
+      const config = babel.loadOptionsSync({
+        filename: file,
+        cwd: Path.dirname(file),
+        rootMode: 'upward-optional',
+      })
+      result = createParserFromConfig(parser, config)
+    } catch (error) {
+      result =
+        extname === '.tsx' ? tsxParser : extname === '.ts' ? tsParser : jsParser
     }
+    syncCache.set(cacheKey, result)
+    asyncCache.set(cacheKey, Promise.resolve(result))
   }
   return !options || isEmpty(options) ? result : result.bindParserOpts(options)
 }
@@ -192,8 +192,10 @@ export async function getParserAsync(
   else if (/\.tsx$/.test(file)) promise = Promise.resolve(tsxParser)
   else {
     const parentDir = Path.dirname(file)
+    const extname = Path.extname(file)
+    const cacheKey = `${parentDir}${Path.delimiter}${extname}`
 
-    promise = asyncCache.get(parentDir)
+    promise = asyncCache.get(cacheKey)
 
     if (!promise) {
       promise = (async (): Promise<Parser> => {
@@ -217,12 +219,17 @@ export async function getParserAsync(
           })
           result = createParserFromConfig(parser, config)
         } catch (error) {
-          result = jsParser
+          result =
+            extname === '.tsx'
+              ? tsxParser
+              : extname === '.ts'
+              ? tsParser
+              : jsParser
         }
-        syncCache.set(parentDir, result)
+        syncCache.set(cacheKey, result)
         return result
       })()
-      asyncCache.set(parentDir, promise)
+      asyncCache.set(cacheKey, promise)
     }
   }
   const result = await promise

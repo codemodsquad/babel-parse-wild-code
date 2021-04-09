@@ -13,7 +13,7 @@ a lot of the work that had already been done by `loadOptionsAsync`. That bug has
 works around this for older versions of Babel 7 by extracting the options for `@babel/parser` from the user's Babel config.
 
 If `babel-parse-wild-code` fails to load `@babel/core`, `@babel/parser`, or the Babel config from the user's
-project, or the file is ts/tsx, it falls back to parsing with reasonable default options.
+project, it falls back to parsing with reasonable default options.
 
 # API
 

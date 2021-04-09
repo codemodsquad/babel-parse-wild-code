@@ -1,4 +1,5 @@
 {
-  "presets": [["@babel/preset-env", {"targets": {"node": "current"}}]],
-  "plugins": [["@babel/plugin-proposal-pipeline-operator", { "proposal": "minimal" }]]
+  "presets": ["@babel/preset-typescript", "@babel/preset-flow", "@babel/preset-react", ["@babel/preset-env", {"targets": {"node": "current"}}]],
+  "plugins": [["@babel/plugin-proposal-pipeline-operator", { "proposal": "minimal" }]],
+  "sourceType": "module"
 }

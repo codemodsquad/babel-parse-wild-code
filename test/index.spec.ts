@@ -26,6 +26,26 @@ describe('parseSync', function () {
       parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.js')).type
     ).to.equal('File')
   })
+  it('passing plugins works', () => {
+    expect(
+      parseSync(
+        Path.join(fixturesDir, 'babelPipeline', 'topLevelAwaitTest.js'),
+        { plugins: ['topLevelAwait'] }
+      ).type
+    ).to.equal('File')
+    expect(
+      parseSync(
+        Path.join(fixturesDir, 'babelPipeline', 'topLevelAwaitTest.ts'),
+        { plugins: ['topLevelAwait'] }
+      ).type
+    ).to.equal('File')
+    expect(
+      parseSync(
+        Path.join(fixturesDir, 'babelPipeline', 'pluginOptionsOverrideTest.js'),
+        { plugins: [['pipelineOperator', { proposal: 'smart' }]] }
+      ).type
+    ).to.equal('File')
+  })
   it('works on ts file', () => {
     expect(
       parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.ts')).type

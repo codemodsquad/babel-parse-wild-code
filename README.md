@@ -17,7 +17,7 @@ project, it falls back to parsing with reasonable default options.
 
 # API
 
-## `parseSync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): File`
+## `parseSync(file: string, options?: { encoding?: BufferEncoding } & ParserOptions): File`
 
 ```ts
 import { parseSync } from 'babel-parse-wild-code'
@@ -26,8 +26,9 @@ import { parseSync } from 'babel-parse-wild-code'
 Parses the given file synchronously, returning the `File` node.
 
 `encoding` defaults to `utf8`. The remaining options are passed to `@babel/parser`'s `parse` function.
+`options.plugins` will be merged with the resolved options for the file.
 
-## `parseAsync(file: string, options?: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'>): Promise<File>`
+## `parseAsync(file: string, options?: { encoding?: BufferEncoding } & ParserOptions): Promise<File>`
 
 ```ts
 import { parseAsync } from 'babel-parse-wild-code'
@@ -36,6 +37,7 @@ import { parseAsync } from 'babel-parse-wild-code'
 Parses the given file asynchronously, returning a `Promise` that will resolve to the `File` node.
 
 `encoding` defaults to `utf8`. The remaining options are passed to `@babel/parser`'s `parse` function.
+`options.plugins` will be merged with the resolved options for the file.
 
 ## `clearCache(): void`
 
@@ -48,7 +50,7 @@ automatically when the user's Babel version or config changes, but setting up th
 complicated. Clearing the cache before you parse a bunch of files is simpler and won't have a huge
 impact on performance.
 
-## `getParserSync(file: string, options?: Omit<ParserOptions, 'plugins'>): Parser`
+## `getParserSync(file: string, options?: ParserOptions): Parser`
 
 ```ts
 import { getParserSync } from 'babel-parse-wild-code'
@@ -58,8 +60,9 @@ Gets a fully-configured parser for the given file synchronously.
 
 `options` is additional options for `@babel/parser`'s `parse` function. For example when working
 with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
+`options.plugins` will be merged with the resolved options for the file.
 
-## `getParserAsync(file: string, options?: Omit<ParserOptions, 'plugins'>): Promise<Parser>`
+## `getParserAsync(file: string, options?: ParserOptions): Promise<Parser>`
 
 ```ts
 import { getParserSync } from 'babel-parse-wild-code'
@@ -69,6 +72,7 @@ Gets a fully-configured parser for the given file asynchronously.
 
 `options` is additional options for `@babel/parser`'s `parse` function. For example when working
 with `jscodeshift` or `recast`, you should pass `{ tokens: true }`.
+`options.plugins` will be merged with the resolved options for the file.
 
 ## `class Parser`
 

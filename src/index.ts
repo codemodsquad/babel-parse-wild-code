@@ -15,6 +15,30 @@ function isEmpty(obj: any): boolean {
 
 type BabelParser = Pick<typeof defaultBabelParser, 'parse' | 'parseExpression'>
 
+function mergePlugins(
+  a: ParserPlugin[] | undefined,
+  b: ParserPlugin[] | undefined
+): ParserPlugin[] | undefined {
+  if (!b) return a
+  if (!a) return b
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const map: Map<string, any> = new Map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    a.map((p: ParserPlugin): [string, any] =>
+      Array.isArray(p) ? p : [p, undefined]
+    )
+  )
+  for (const p of b) {
+    if (Array.isArray(p)) map.set(p[0], { ...map.get(p[0]), ...p[1] })
+    else if (!map.has(p)) map.set(p, map.get(p))
+  }
+  return [...map.entries()].map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (e: [string, any]) => (e[1] === undefined ? e[0] : e)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ) as any
+}
+
 export class Parser {
   readonly babelParser: BabelParser
   readonly parserOpts: ParserOptions
@@ -37,7 +61,11 @@ export class Parser {
   }
 
   bindParserOpts(parserOpts: ParserOptions): Parser {
-    return new Parser(this.babelParser, { ...this.parserOpts, ...parserOpts })
+    return new Parser(this.babelParser, {
+      ...this.parserOpts,
+      ...parserOpts,
+      plugins: mergePlugins(this.parserOpts.plugins, parserOpts.plugins),
+    })
   }
 }
 
@@ -141,10 +169,7 @@ function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
   return new Parser(babelParser, opts.parserOpts)
 }
 
-export function getParserSync(
-  file: string,
-  options?: Omit<ParserOptions, 'plugins'>
-): Parser {
+export function getParserSync(file: string, options?: ParserOptions): Parser {
   let result
   const parentDir = Path.dirname(file)
   const extname = Path.extname(file)
@@ -185,7 +210,7 @@ export function getParserSync(
 
 export async function getParserAsync(
   file: string,
-  options?: Omit<ParserOptions, 'plugins'>
+  options?: ParserOptions
 ): Promise<Parser> {
   let promise
   if (/\.ts$/.test(file)) promise = Promise.resolve(tsParser)
@@ -241,7 +266,7 @@ export function parseSync(
   {
     encoding = 'utf8',
     ...options
-  }: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'> = {}
+  }: { encoding?: BufferEncoding } & ParserOptions = {}
 ): t.File {
   const parser = getParserSync(file, options)
   return parser.parse(readFileSync(file, encoding))
@@ -252,7 +277,7 @@ export async function parseAsync(
   {
     encoding = 'utf8',
     ...options
-  }: { encoding?: BufferEncoding } & Omit<ParserOptions, 'plugins'> = {}
+  }: { encoding?: BufferEncoding } & ParserOptions = {}
 ): Promise<t.File> {
   const parser = await getParserAsync(file, options)
   return parser.parse(await readFile(file, encoding))

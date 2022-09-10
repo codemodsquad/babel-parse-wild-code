@@ -144,12 +144,48 @@ const resolve: (
 ) => Promise<string> = promisify(_resolve as any)
 
 const requiredPaths: string[] = []
-const syncCache: Map<string, Parser> = new Map()
-const asyncCache: Map<string, Promise<Parser>> = new Map()
+
+class Cache<K, V> {
+  syncCache: Map<K, V> = new Map()
+  asyncCache: Map<K, Promise<V>> = new Map()
+
+  getSync(key: K, fetch: () => V): V {
+    let result = this.syncCache.get(key)
+    if (!result) {
+      result = fetch()
+      this.syncCache.set(key, result)
+      this.asyncCache.set(key, Promise.resolve(result))
+    }
+    return result
+  }
+
+  getAsync(key: K, fetch: () => Promise<V>): Promise<V> {
+    let result = this.asyncCache.get(key)
+    if (!result) {
+      result = fetch()
+      this.asyncCache.set(key, result)
+      result.then((value) => {
+        // check if cache was cleared before this point
+        if (this.asyncCache.get(key) === result) {
+          this.syncCache.set(key, value)
+        }
+      })
+    }
+    return result
+  }
+
+  clear() {
+    this.syncCache.clear()
+    this.asyncCache.clear()
+  }
+}
+
+const dirParserCache = new Cache<string, Parser>()
+const babelrcParserCache = new Cache<string, Parser>()
 
 export function clearCache(): void {
-  syncCache.clear()
-  asyncCache.clear()
+  dirParserCache.clear()
+  babelrcParserCache.clear()
   for (const path of requiredPaths) {
     delete require.cache[path]
   }
@@ -170,13 +206,10 @@ function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
 }
 
 export function getParserSync(file: string, options?: ParserOptions): Parser {
-  let result
   const parentDir = Path.dirname(file)
   const extname = Path.extname(file)
   const cacheKey = `${parentDir}${Path.delimiter}${extname}`
-  result = syncCache.get(cacheKey)
-
-  if (!result) {
+  const parser = dirParserCache.getSync(cacheKey, () => {
     try {
       const babelPath = _resolve.sync('@babel/core', {
         basedir: parentDir,
@@ -192,73 +225,85 @@ export function getParserSync(file: string, options?: ParserOptions): Parser {
       const parser = require(parserPath)
       requiredPaths.push(parserPath)
 
-      const config = babel.loadOptionsSync({
+      const loadOpts = {
         filename: file,
         cwd: Path.dirname(file),
         rootMode: 'upward-optional',
-      })
-      result = createParserFromConfig(parser, config)
+      }
+      const partial = babel.loadPartialConfigSync(loadOpts)
+      const babelrc = partial.babelrc || partial.config
+      const getParser = () => {
+        const config = babel.loadOptionsSync(loadOpts)
+        return createParserFromConfig(parser, config)
+      }
+      return babelrc
+        ? babelrcParserCache.getSync(
+            JSON.stringify([babelrc, extname]),
+            getParser
+          )
+        : getParser()
     } catch (error) {
-      result =
-        extname === '.tsx' ? tsxParser : extname === '.ts' ? tsParser : jsParser
+      return extname === '.tsx'
+        ? tsxParser
+        : extname === '.ts'
+        ? tsParser
+        : jsParser
     }
-    syncCache.set(cacheKey, result)
-    asyncCache.set(cacheKey, Promise.resolve(result))
-  }
-  return !options || isEmpty(options) ? result : result.bindParserOpts(options)
+  })
+  return !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
 }
 
 export async function getParserAsync(
   file: string,
   options?: ParserOptions
 ): Promise<Parser> {
-  let promise
-  if (/\.ts$/.test(file)) promise = Promise.resolve(tsParser)
-  else if (/\.tsx$/.test(file)) promise = Promise.resolve(tsxParser)
-  else {
-    const parentDir = Path.dirname(file)
-    const extname = Path.extname(file)
-    const cacheKey = `${parentDir}${Path.delimiter}${extname}`
+  const parentDir = Path.dirname(file)
+  const extname = Path.extname(file)
+  const cacheKey = `${parentDir}${Path.delimiter}${extname}`
 
-    promise = asyncCache.get(cacheKey)
+  const parser = await dirParserCache.getAsync(
+    cacheKey,
+    async (): Promise<Parser> => {
+      try {
+        const babelPath = await resolve('@babel/core', {
+          basedir: parentDir,
+        })
+        const babel = await import(babelPath)
+        requiredPaths.push(babelPath)
 
-    if (!promise) {
-      promise = (async (): Promise<Parser> => {
-        let result
-        try {
-          const babelPath = await resolve('@babel/core', {
-            basedir: parentDir,
-          })
-          const babel = await import(babelPath)
-          requiredPaths.push(babelPath)
+        const parserPath = await resolve('@babel/parser', {
+          basedir: parentDir,
+        })
+        const parser = await import(parserPath)
+        requiredPaths.push(parserPath)
 
-          const parserPath = await resolve('@babel/parser', {
-            basedir: parentDir,
-          })
-          const parser = await import(parserPath)
-          requiredPaths.push(parserPath)
-
-          const config = await babel.loadOptionsAsync({
-            filename: file,
-            cwd: parentDir,
-          })
-          result = createParserFromConfig(parser, config)
-        } catch (error) {
-          result =
-            extname === '.tsx'
-              ? tsxParser
-              : extname === '.ts'
-              ? tsParser
-              : jsParser
+        const loadOpts = {
+          filename: file,
+          cwd: parentDir,
+          rootMode: 'upward-optional',
         }
-        syncCache.set(cacheKey, result)
-        return result
-      })()
-      asyncCache.set(cacheKey, promise)
+        const partial = await babel.loadPartialConfigAsync(loadOpts)
+        const babelrc = partial.babelrc || partial.config
+        const getParser = async (): Promise<Parser> => {
+          const config = await babel.loadOptionsAsync(loadOpts)
+          return createParserFromConfig(parser, config)
+        }
+        return babelrc
+          ? await babelrcParserCache.getAsync(
+              JSON.stringify([babelrc, extname]),
+              getParser
+            )
+          : await getParser()
+      } catch (error) {
+        return extname === '.tsx'
+          ? tsxParser
+          : extname === '.ts'
+          ? tsParser
+          : jsParser
+      }
     }
-  }
-  const result = await promise
-  return !options || isEmpty(options) ? result : result.bindParserOpts(options)
+  )
+  return !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
 }
 
 export function parseSync(

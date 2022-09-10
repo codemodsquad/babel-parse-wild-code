@@ -1,13 +1,51 @@
 /* eslint-env mocha */
 
 import * as Path from 'path'
-import { parseSync, parseAsync, getParserSync, clearCache } from '../src'
+import {
+  parseSync,
+  parseAsync,
+  getParserSync,
+  clearCache,
+  getParserAsync,
+  jsParser,
+  tsParser,
+  tsxParser,
+} from '../src'
 import fs from 'fs-extra'
 import { expect } from 'chai'
 import os from 'os'
 
 const fixturesDir = Path.resolve(__dirname, 'fixtures')
 
+describe(`getParserSync`, function () {
+  this.timeout(10000)
+
+  it(`returns same parser when babel config is the same`, async function () {
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).to.equal(
+      getParserSync(Path.resolve(__dirname, '..', 'src', 'index.ts'))
+    )
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).not.to.equal(
+      tsParser
+    )
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).not.to.equal(
+      tsxParser
+    )
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).not.to.equal(
+      getParserSync(Path.resolve(__dirname, 'configure.js'))
+    )
+    expect(getParserSync(Path.join(__dirname, 'configure.js'))).not.to.equal(
+      jsParser
+    )
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).not.to.equal(
+      getParserSync(Path.resolve(__dirname, '..', 'src', 'index.js.flow'))
+    )
+    expect(getParserSync(Path.join(__dirname, 'index.spec.ts'))).not.to.equal(
+      getParserSync(
+        Path.resolve(__dirname, 'fixtures', 'babelPipeline', 'test.ts')
+      )
+    )
+  })
+})
 describe('parseSync', function () {
   this.timeout(10000)
 
@@ -73,6 +111,45 @@ describe('parseSync', function () {
         tokens: true,
       }).tokens
     ).to.exist
+  })
+})
+describe(`getParserAsync`, function () {
+  this.timeout(10000)
+
+  it(`returns same parser when babel config is the same`, async function () {
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).to.equal(
+      await getParserAsync(Path.resolve(__dirname, '..', 'src', 'index.ts'))
+    )
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).not.to.equal(tsParser)
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).not.to.equal(tsxParser)
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).not.to.equal(
+      await getParserAsync(Path.resolve(__dirname, 'configure.js'))
+    )
+    expect(
+      await getParserAsync(Path.join(__dirname, 'configure.js'))
+    ).not.to.equal(jsParser)
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).not.to.equal(
+      await getParserAsync(
+        Path.resolve(__dirname, '..', 'src', 'index.js.flow')
+      )
+    )
+    expect(
+      await getParserAsync(Path.join(__dirname, 'index.spec.ts'))
+    ).not.to.equal(
+      await getParserAsync(
+        Path.resolve(__dirname, 'fixtures', 'babelPipeline', 'test.ts')
+      )
+    )
   })
 })
 describe(`parseAsync`, function () {

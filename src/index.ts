@@ -208,48 +208,50 @@ function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
 export function getParserSync(file: string, options?: ParserOptions): Parser {
   const parentDir = Path.dirname(file)
   const extname = Path.extname(file)
-  const cacheKey = `${parentDir}${Path.delimiter}${extname}`
-  const parser = dirParserCache.getSync(cacheKey, () => {
-    try {
-      const babelPath = _resolve.sync('@babel/core', {
-        basedir: parentDir,
-      })
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const babel = require(babelPath)
-      requiredPaths.push(babelPath)
+  const parser = dirParserCache.getSync(
+    `${parentDir}${Path.delimiter}${extname}`,
+    () => {
+      try {
+        const babelPath = _resolve.sync('@babel/core', {
+          basedir: parentDir,
+        })
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const babel = require(babelPath)
+        requiredPaths.push(babelPath)
 
-      const parserPath = _resolve.sync('@babel/parser', {
-        basedir: parentDir,
-      })
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const parser = require(parserPath)
-      requiredPaths.push(parserPath)
+        const parserPath = _resolve.sync('@babel/parser', {
+          basedir: parentDir,
+        })
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const parser = require(parserPath)
+        requiredPaths.push(parserPath)
 
-      const loadOpts = {
-        filename: file,
-        cwd: Path.dirname(file),
-        rootMode: 'upward-optional',
+        const loadOpts = {
+          filename: file,
+          cwd: Path.dirname(file),
+          rootMode: 'upward-optional',
+        }
+        const partial = babel.loadPartialConfigSync(loadOpts)
+        const babelrc = partial.babelrc || partial.config
+        const getParser = () => {
+          const config = babel.loadOptionsSync(loadOpts)
+          return createParserFromConfig(parser, config)
+        }
+        return babelrc
+          ? babelrcParserCache.getSync(
+              `${babelrc}${Path.delimiter}${extname}`,
+              getParser
+            )
+          : getParser()
+      } catch (error) {
+        return extname === '.tsx'
+          ? tsxParser
+          : extname === '.ts'
+          ? tsParser
+          : jsParser
       }
-      const partial = babel.loadPartialConfigSync(loadOpts)
-      const babelrc = partial.babelrc || partial.config
-      const getParser = () => {
-        const config = babel.loadOptionsSync(loadOpts)
-        return createParserFromConfig(parser, config)
-      }
-      return babelrc
-        ? babelrcParserCache.getSync(
-            JSON.stringify([babelrc, extname]),
-            getParser
-          )
-        : getParser()
-    } catch (error) {
-      return extname === '.tsx'
-        ? tsxParser
-        : extname === '.ts'
-        ? tsParser
-        : jsParser
     }
-  })
+  )
   return !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
 }
 
@@ -259,10 +261,9 @@ export async function getParserAsync(
 ): Promise<Parser> {
   const parentDir = Path.dirname(file)
   const extname = Path.extname(file)
-  const cacheKey = `${parentDir}${Path.delimiter}${extname}`
 
   const parser = await dirParserCache.getAsync(
-    cacheKey,
+    `${parentDir}${Path.delimiter}${extname}`,
     async (): Promise<Parser> => {
       try {
         const babelPath = await resolve('@babel/core', {
@@ -290,7 +291,7 @@ export async function getParserAsync(
         }
         return babelrc
           ? await babelrcParserCache.getAsync(
-              JSON.stringify([babelrc, extname]),
+              `${babelrc}${Path.delimiter}${extname}`,
               getParser
             )
           : await getParser()

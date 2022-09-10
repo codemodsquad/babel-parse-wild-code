@@ -104,7 +104,7 @@ export class Parser {
 import { tsParser } from 'babel-parse-wild-code'
 ```
 
-The parser used for `.ts` files.
+The fallback parser used for `.ts` files.
 
 ## `tsxParser`
 
@@ -112,7 +112,7 @@ The parser used for `.ts` files.
 import { tsxParser } from 'babel-parse-wild-code'
 ```
 
-The parser used for `.tsx` files.
+The fallback parser used for `.tsx` files.
 
 ## `jsParser`
 

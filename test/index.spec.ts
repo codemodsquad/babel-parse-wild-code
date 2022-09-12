@@ -94,6 +94,11 @@ describe('parseSync', function () {
       parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.tsx')).type
     ).to.equal('File')
   })
+  it('works on d.ts file', () => {
+    expect(
+      parseSync(Path.join(fixturesDir, 'babelPipeline', 'test2.d.ts')).type
+    ).to.equal('File')
+  })
   it('passing options works for js file', function () {
     expect(parseSync(Path.join(fixturesDir, 'babelPipeline', 'test.js')).tokens)
       .not.to.exist
@@ -179,6 +184,13 @@ describe(`parseAsync`, function () {
         .type
     ).to.equal('File')
   })
+  it('works on d.ts file', async () => {
+    expect(
+      (await parseAsync(Path.join(fixturesDir, 'babelPipeline', 'test2.d.ts')))
+        .type
+    ).to.equal('File')
+  })
+
   it('passing options works for js file', async () => {
     expect(
       (await parseAsync(Path.join(fixturesDir, 'babelPipeline', 'test.js')))

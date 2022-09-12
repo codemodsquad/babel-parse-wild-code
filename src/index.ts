@@ -100,6 +100,13 @@ export const tsParser: Parser = new Parser(defaultBabelParser, {
   startLine: 1,
   plugins: tsPlugins,
 })
+export const dtsParser: Parser = new Parser(defaultBabelParser, {
+  sourceType: 'module',
+  allowImportExportEverywhere: true,
+  allowReturnOutsideFunction: true,
+  startLine: 1,
+  plugins: mergePlugins(tsPlugins, [['typescript', { dts: true }]]),
+})
 export const tsxParser: Parser = new Parser(defaultBabelParser, {
   ...tsParser.parserOpts,
   plugins: [...tsPlugins, 'jsx'],
@@ -136,6 +143,16 @@ export const jsParser: Parser = new Parser(defaultBabelParser, {
     'throwExpressions',
   ],
 })
+
+function defaultParser(extname: string): Parser {
+  return extname === '.tsx'
+    ? tsxParser
+    : extname === '.d.ts'
+    ? dtsParser
+    : extname === '.ts'
+    ? tsParser
+    : jsParser
+}
 
 const resolve: (
   id: string,
@@ -205,9 +222,13 @@ function createParserFromConfig(babelParser: BabelParser, config: any): Parser {
   return new Parser(babelParser, opts.parserOpts)
 }
 
+function getExtname(file: string): string {
+  return /(\.d\.ts|\.js\.flow|\.[^.]+)$/i.exec(file)?.[1] || ''
+}
+
 export function getParserSync(file: string, options?: ParserOptions): Parser {
   const parentDir = Path.dirname(file)
-  const extname = Path.extname(file)
+  const extname = getExtname(file)
   const parser = dirParserCache.getSync(
     `${parentDir}${Path.delimiter}${extname}`,
     () => {
@@ -235,7 +256,12 @@ export function getParserSync(file: string, options?: ParserOptions): Parser {
         const babelrc = partial.babelrc || partial.config
         const getParser = () => {
           const config = babel.loadOptionsSync(loadOpts)
-          return createParserFromConfig(parser, config)
+          const result = createParserFromConfig(parser, config)
+          return extname === '.d.ts'
+            ? result.bindParserOpts({
+                plugins: [['typescript', { dts: true }]],
+              })
+            : result
         }
         return babelrc
           ? babelrcParserCache.getSync(
@@ -244,11 +270,7 @@ export function getParserSync(file: string, options?: ParserOptions): Parser {
             )
           : getParser()
       } catch (error) {
-        return extname === '.tsx'
-          ? tsxParser
-          : extname === '.ts'
-          ? tsParser
-          : jsParser
+        return defaultParser(extname)
       }
     }
   )
@@ -260,7 +282,7 @@ export async function getParserAsync(
   options?: ParserOptions
 ): Promise<Parser> {
   const parentDir = Path.dirname(file)
-  const extname = Path.extname(file)
+  const extname = getExtname(file)
 
   const parser = await dirParserCache.getAsync(
     `${parentDir}${Path.delimiter}${extname}`,
@@ -287,7 +309,12 @@ export async function getParserAsync(
         const babelrc = partial.babelrc || partial.config
         const getParser = async (): Promise<Parser> => {
           const config = await babel.loadOptionsAsync(loadOpts)
-          return createParserFromConfig(parser, config)
+          const result = createParserFromConfig(parser, config)
+          return extname === '.d.ts'
+            ? result.bindParserOpts({
+                plugins: [['typescript', { dts: true }]],
+              })
+            : result
         }
         return babelrc
           ? await babelrcParserCache.getAsync(
@@ -296,11 +323,7 @@ export async function getParserAsync(
             )
           : await getParser()
       } catch (error) {
-        return extname === '.tsx'
-          ? tsxParser
-          : extname === '.ts'
-          ? tsParser
-          : jsParser
+        return defaultParser(extname)
       }
     }
   )

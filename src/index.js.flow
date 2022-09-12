@@ -22,6 +22,7 @@ declare export class Parser {
 }
 
 declare export var tsParser: Parser
+declare export var dtsParser: Parser
 declare export var tsxParser: Parser
 declare export var jsParser: Parser
 

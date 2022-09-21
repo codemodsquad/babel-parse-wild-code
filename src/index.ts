@@ -15,12 +15,30 @@ function isEmpty(obj: any): boolean {
 
 type BabelParser = Pick<typeof defaultBabelParser, 'parse' | 'parseExpression'>
 
+function pluginName(p: ParserPlugin): string {
+  return typeof p === 'string' ? p : p[0]
+}
+
+function pluginOpts(p: ParserPlugin): any {
+  return typeof p === 'string' ? {} : p[1]
+}
+
+function arePluginsEqual(a: ParserPlugin, b: ParserPlugin): boolean {
+  return (
+    pluginName(a) === pluginName(b) &&
+    t.shallowEqual(pluginOpts(a), pluginOpts(b))
+  )
+}
+
 function mergePlugins(
   a: ParserPlugin[] | undefined,
   b: ParserPlugin[] | undefined
 ): ParserPlugin[] | undefined {
   if (!b) return a
   if (!a) return b
+
+  if (b.every((bp) => a.find((ap) => arePluginsEqual(ap, bp)))) return a
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const map: Map<string, any> = new Map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +55,16 @@ function mergePlugins(
     (e: [string, any]) => (e[1] === undefined ? e[0] : e)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) as any
+}
+
+function removePlugins(
+  a: ParserPlugin[] | undefined,
+  b: string[]
+): ParserPlugin[] | undefined {
+  if (!b.some((plugin) => a?.some((p) => pluginName(p) === plugin))) {
+    return a
+  }
+  return a?.filter((p) => !b.includes(pluginName(p)))
 }
 
 export class Parser {
@@ -67,50 +95,83 @@ export class Parser {
       plugins: mergePlugins(this.parserOpts.plugins, parserOpts.plugins),
     })
   }
+
+  mergePlugins(...plugins: ParserPlugin[]): Parser {
+    const merged = mergePlugins(this.parserOpts.plugins, plugins)
+    return merged === this.parserOpts.plugins
+      ? this
+      : new Parser(this.babelParser, {
+          ...this.parserOpts,
+          plugins: merged,
+        })
+  }
+
+  removePlugins(...plugins: string[]): Parser {
+    const removed = removePlugins(this.parserOpts.plugins, plugins)
+    return removed === this.parserOpts.plugins
+      ? this
+      : new Parser(this.babelParser, {
+          ...this.parserOpts,
+          plugins: removed,
+        })
+  }
+
+  get forJs(): Parser {
+    if (!this.parserOpts.plugins?.some((p) => pluginName(p) === 'typescript'))
+      return this
+    return this.removePlugins('typescript', 'decorators-legacy').mergePlugins(
+      ['flow', { all: true }],
+      'flowComments',
+      'jsx',
+      ['decorators', { decoratorsBeforeExport: false }]
+    )
+  }
+
+  get forTs(): Parser {
+    return this.removePlugins(
+      'flow',
+      'flowComments',
+      'decorators',
+      'jsx'
+    ).mergePlugins(
+      ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
+      'decorators-legacy'
+    )
+  }
+
+  get forTsx(): Parser {
+    return this.removePlugins(
+      'flow',
+      'flowComments',
+      'decorators'
+    ).mergePlugins(
+      ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
+      'decorators-legacy',
+      'jsx'
+    )
+  }
+
+  get forDts(): Parser {
+    return this.removePlugins(
+      'flow',
+      'flowComments',
+      'decorators',
+      'jsx'
+    ).mergePlugins(
+      ['typescript', { disallowAmbiguousJSXLike: true, dts: true }],
+      'decorators-legacy'
+    )
+  }
+
+  forExtension(e: string): Parser {
+    if (/(\.|^)([cm]?jsx?(\.flow)?)/.test(e)) return this.forJs
+    if (/(\.|^)\.d\.ts/i.test(e)) return this.forDts
+    if (/(\.|^)\.[cm]?tsx/i.test(e)) return this.forTsx
+    if (/(\.|^)\.[cm]?ts/i.test(e)) return this.forTs
+    return this
+  }
 }
 
-const tsPlugins: ParserPlugin[] = [
-  'asyncGenerators',
-  'bigInt',
-  'classPrivateMethods',
-  'classPrivateProperties',
-  'classProperties',
-  'decorators-legacy',
-  'doExpressions',
-  'dynamicImport',
-  'exportDefaultFrom',
-  'exportNamespaceFrom',
-  'functionBind',
-  'functionSent',
-  'importMeta',
-  'nullishCoalescingOperator',
-  'numericSeparator',
-  'objectRestSpread',
-  'optionalCatchBinding',
-  'optionalChaining',
-  ['pipelineOperator', { proposal: 'minimal' }],
-  'throwExpressions',
-  'typescript',
-]
-
-export const tsParser: Parser = new Parser(defaultBabelParser, {
-  sourceType: 'module',
-  allowImportExportEverywhere: true,
-  allowReturnOutsideFunction: true,
-  startLine: 1,
-  plugins: tsPlugins,
-})
-export const dtsParser: Parser = new Parser(defaultBabelParser, {
-  sourceType: 'module',
-  allowImportExportEverywhere: true,
-  allowReturnOutsideFunction: true,
-  startLine: 1,
-  plugins: mergePlugins(tsPlugins, [['typescript', { dts: true }]]),
-})
-export const tsxParser: Parser = new Parser(defaultBabelParser, {
-  ...tsParser.parserOpts,
-  plugins: [...tsPlugins, 'jsx'],
-})
 export const jsParser: Parser = new Parser(defaultBabelParser, {
   sourceType: 'module',
   allowImportExportEverywhere: true,
@@ -125,33 +186,29 @@ export const jsParser: Parser = new Parser(defaultBabelParser, {
     'classProperties',
     'classPrivateProperties',
     'classPrivateMethods',
-    ['decorators', { decoratorsBeforeExport: false }],
-    'doExpressions',
+    'classStaticBlock',
     'dynamicImport',
-    'exportDefaultFrom',
     'exportNamespaceFrom',
-    'functionBind',
     'functionSent',
     'importMeta',
     'logicalAssignment',
+    'moduleStringNames',
     'nullishCoalescingOperator',
     'numericSeparator',
     'objectRestSpread',
     'optionalCatchBinding',
     'optionalChaining',
-    ['pipelineOperator', { proposal: 'minimal' }],
-    'throwExpressions',
+    'privateIn',
+    'topLevelAwait',
   ],
 })
 
+export const tsParser: Parser = jsParser.forTs
+export const tsxParser: Parser = jsParser.forTsx
+export const dtsParser: Parser = jsParser.forDts
+
 function defaultParser(extname: string): Parser {
-  return extname === '.tsx'
-    ? tsxParser
-    : extname === '.d.ts'
-    ? dtsParser
-    : extname === '.ts'
-    ? tsParser
-    : jsParser
+  return jsParser.forExtension(extname)
 }
 
 const resolve: (

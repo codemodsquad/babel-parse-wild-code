@@ -56,7 +56,7 @@ describe('parseSync', function () {
   it(`falls back to sensible defaults if babel not found`, async function () {
     const dir = os.tmpdir()
     const file = Path.join(dir, 'test.js')
-    await fs.writeFile(file, `const foo = bar |> baz`, 'utf8')
+    await fs.writeFile(file, `await foo`, 'utf8')
     expect(parseSync(file).type).to.equal('File')
   })
   it('works', () => {
@@ -163,7 +163,7 @@ describe(`parseAsync`, function () {
   it(`falls back to sensible defaults if babel not found`, async function () {
     const dir = os.tmpdir()
     const file = Path.join(dir, 'test.js')
-    await fs.writeFile(file, `const foo = bar |> baz`, 'utf8')
+    await fs.writeFile(file, `await foo`, 'utf8')
     expect((await parseAsync(file)).type).to.equal('File')
   })
   it('works', async () => {

@@ -1,6 +1,7 @@
 // @flow
 
-type ParserOptions = any
+type ParserOptions = { ... }
+type ParserPlugin = string | [string, { ... }]
 type File = any
 type Expression = any
 
@@ -19,12 +20,22 @@ declare export class Parser {
   parseExpression(code: string, parserOpts?: ParserOptions): Expression;
 
   bindParserOpts(parserOpts: ParserOptions): Parser;
+
+  mergePlugins(...plugins: ParserPlugin[]): Parser;
+  removePlugins(...plugins: string[]): Parser;
+
+  get forJs(): Parser;
+  get forTs(): Parser;
+  get forTsx(): Parser;
+  get forDts(): Parser;
+
+  forExtension(e: string): Parser;
 }
 
-declare export var tsParser: Parser
-declare export var dtsParser: Parser
-declare export var tsxParser: Parser
 declare export var jsParser: Parser
+declare export var tsParser: Parser
+declare export var tsxParser: Parser
+declare export var dtsParser: Parser
 
 declare export function clearCache(): void
 declare export function getParserSync(

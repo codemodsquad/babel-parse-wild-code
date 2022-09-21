@@ -148,10 +148,7 @@ export class Parser {
         'flowComments',
         'decorators',
         'jsx'
-      ).mergePlugins(
-        ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
-        'decorators-legacy'
-      ))
+      ).mergePlugins(['typescript', { dts: false }], 'decorators-legacy'))
     )
   }
 
@@ -178,10 +175,7 @@ export class Parser {
         'flowComments',
         'decorators',
         'jsx'
-      ).mergePlugins(
-        ['typescript', { disallowAmbiguousJSXLike: true, dts: true }],
-        'decorators-legacy'
-      ))
+      ).mergePlugins(['typescript', { dts: true }], 'decorators-legacy'))
     )
   }
 

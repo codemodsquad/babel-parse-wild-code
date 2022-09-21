@@ -71,6 +71,11 @@ export class Parser {
   readonly babelParser: BabelParser
   readonly parserOpts: ParserOptions
 
+  _forJs: Parser | undefined
+  _forTs: Parser | undefined
+  _forTsx: Parser | undefined
+  _forDts: Parser | undefined
+
   constructor(babelParser: BabelParser, parserOpts: ParserOptions) {
     this.babelParser = babelParser
     this.parserOpts = parserOpts
@@ -117,57 +122,74 @@ export class Parser {
   }
 
   get forJs(): Parser {
-    if (!this.parserOpts.plugins?.some((p) => pluginName(p) === 'typescript'))
-      return this
-    return this.removePlugins('typescript', 'decorators-legacy').mergePlugins(
-      ['flow', { all: true }],
-      'flowComments',
-      'jsx',
-      ['decorators', { decoratorsBeforeExport: false }]
+    return (
+      this._forJs ||
+      (this._forJs = (() => {
+        if (
+          !this.parserOpts.plugins?.some((p) => pluginName(p) === 'typescript')
+        )
+          return this
+        return this.removePlugins(
+          'typescript',
+          'decorators-legacy'
+        ).mergePlugins(['flow', { all: true }], 'flowComments', 'jsx', [
+          'decorators',
+          { decoratorsBeforeExport: false },
+        ])
+      })())
     )
   }
 
   get forTs(): Parser {
-    return this.removePlugins(
-      'flow',
-      'flowComments',
-      'decorators',
-      'jsx'
-    ).mergePlugins(
-      ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
-      'decorators-legacy'
+    return (
+      this._forTs ||
+      (this._forTs = this.removePlugins(
+        'flow',
+        'flowComments',
+        'decorators',
+        'jsx'
+      ).mergePlugins(
+        ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
+        'decorators-legacy'
+      ))
     )
   }
 
   get forTsx(): Parser {
-    return this.removePlugins(
-      'flow',
-      'flowComments',
-      'decorators'
-    ).mergePlugins(
-      ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
-      'decorators-legacy',
-      'jsx'
+    return (
+      this._forTsx ||
+      (this._forTsx = this.removePlugins(
+        'flow',
+        'flowComments',
+        'decorators'
+      ).mergePlugins(
+        ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
+        'decorators-legacy',
+        'jsx'
+      ))
     )
   }
 
   get forDts(): Parser {
-    return this.removePlugins(
-      'flow',
-      'flowComments',
-      'decorators',
-      'jsx'
-    ).mergePlugins(
-      ['typescript', { disallowAmbiguousJSXLike: true, dts: true }],
-      'decorators-legacy'
+    return (
+      this._forDts ||
+      (this._forDts = this.removePlugins(
+        'flow',
+        'flowComments',
+        'decorators',
+        'jsx'
+      ).mergePlugins(
+        ['typescript', { disallowAmbiguousJSXLike: true, dts: true }],
+        'decorators-legacy'
+      ))
     )
   }
 
   forExtension(e: string): Parser {
-    if (/(\.|^)([cm]?jsx?(\.flow)?)/.test(e)) return this.forJs
-    if (/(\.|^)\.d\.ts/i.test(e)) return this.forDts
-    if (/(\.|^)\.[cm]?tsx/i.test(e)) return this.forTsx
-    if (/(\.|^)\.[cm]?ts/i.test(e)) return this.forTs
+    if (/(\.|^)([cm]?jsx?(\.flow)?)$/i.test(e)) return this.forJs
+    if (/(\.|^)d\.ts$/i.test(e)) return this.forDts
+    if (/(\.|^)[cm]?tsx$/i.test(e)) return this.forTsx
+    if (/(\.|^)[cm]?ts$/i.test(e)) return this.forTs
     return this
   }
 }

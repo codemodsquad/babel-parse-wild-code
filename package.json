@@ -10,6 +10,12 @@
       "require": "./index.cjs"
     }
   },
+  "files": [
+    "index.mjs",
+    "index.cjs",
+    "index.d.ts",
+    "index.js.flow"
+  ],
   "scripts": {
     "lint": "eslint $npm_package_config_lint",
     "lint:fix": "eslint $npm_package_config_lint",

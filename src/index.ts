@@ -310,15 +310,20 @@ export function getParserSync(file: string, options?: ParserOptions): Parser {
           basedir: parentDir,
         })
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const babel = require(babelPath)
+        const babel = require(/* webpackIgnore: true */ babelPath)
         requiredPaths.push(babelPath)
 
-        const parserPath = _resolve.sync('@babel/parser', {
-          basedir: parentDir,
-        })
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const parser = require(parserPath)
-        requiredPaths.push(parserPath)
+        let parser: typeof defaultBabelParser
+        try {
+          const parserPath = _resolve.sync('@babel/parser', {
+            basedir: parentDir,
+          })
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          parser = require(/* webpackIgnore: true */ parserPath)
+          requiredPaths.push(parserPath)
+        } catch (error) {
+          parser = defaultBabelParser
+        }
 
         const loadOpts = {
           filename: file,
@@ -364,14 +369,19 @@ export async function getParserAsync(
         const babelPath = await resolve('@babel/core', {
           basedir: parentDir,
         })
-        const babel = await import(babelPath)
+        const babel = await import(/* webpackIgnore: true */ babelPath)
         requiredPaths.push(babelPath)
 
-        const parserPath = await resolve('@babel/parser', {
-          basedir: parentDir,
-        })
-        const parser = await import(parserPath)
-        requiredPaths.push(parserPath)
+        let parser: typeof defaultBabelParser
+        try {
+          const parserPath = await resolve('@babel/parser', {
+            basedir: parentDir,
+          })
+          parser = await import(/* webpackIgnore: true */ parserPath)
+          requiredPaths.push(parserPath)
+        } catch (error) {
+          parser = defaultBabelParser
+        }
 
         const loadOpts = {
           filename: file,

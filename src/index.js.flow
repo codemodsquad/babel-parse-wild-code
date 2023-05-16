@@ -25,6 +25,7 @@ declare export class Parser {
   removePlugins(...plugins: string[]): Parser;
 
   get forJs(): Parser;
+  get forJsx(): Parser;
   get forTs(): Parser;
   get forTsx(): Parser;
   get forDts(): Parser;
@@ -33,6 +34,7 @@ declare export class Parser {
 }
 
 declare export var jsParser: Parser
+declare export var jsxParser: Parser
 declare export var tsParser: Parser
 declare export var tsxParser: Parser
 declare export var dtsParser: Parser

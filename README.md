@@ -121,3 +121,12 @@ import { jsParser } from 'babel-parse-wild-code'
 ```
 
 The fallback parser used for parsing `.js` files when `babel-parse-wild-code` failed to load Babel modules or config for the file's directory.
+Note: this is the same as `jsxParser`, but `jsxParser` is exported for completeness.
+
+## `jsxParser`
+
+```ts
+import { jsxParser } from 'babel-parse-wild-code'
+```
+
+The fallback parser used for parsing `.jsx` files when `babel-parse-wild-code` failed to load Babel modules or config for the file's directory.

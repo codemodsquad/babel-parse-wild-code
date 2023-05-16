@@ -72,6 +72,7 @@ export class Parser {
   readonly parserOpts: ParserOptions
 
   _forJs: Parser | undefined
+  _forJsx: Parser | undefined
   _forTs: Parser | undefined
   _forTsx: Parser | undefined
   _forDts: Parser | undefined
@@ -127,8 +128,31 @@ export class Parser {
       (this._forJs = (() => {
         if (
           !this.parserOpts.plugins?.some((p) => pluginName(p) === 'typescript')
-        )
+        ) {
           return this
+        }
+        return this.removePlugins(
+          'typescript',
+          'decorators-legacy'
+        ).mergePlugins(['flow', { all: true }], 'flowComments', 'jsx', [
+          'decorators',
+          { decoratorsBeforeExport: false },
+        ])
+      })())
+    )
+  }
+
+  get forJsx(): Parser {
+    return (
+      this._forJsx ||
+      (this._forJsx = (() => {
+        const { plugins } = this.parserOpts
+        if (
+          !plugins?.some((p) => pluginName(p) === 'typescript') &&
+          plugins?.some((p) => pluginName(p) === 'jsx')
+        ) {
+          return this
+        }
         return this.removePlugins(
           'typescript',
           'decorators-legacy'
@@ -143,43 +167,75 @@ export class Parser {
   get forTs(): Parser {
     return (
       this._forTs ||
-      (this._forTs = this.removePlugins(
-        'flow',
-        'flowComments',
-        'decorators',
-        'jsx'
-      ).mergePlugins(['typescript', { dts: false }], 'decorators-legacy'))
+      (this._forTs = (() => {
+        const { plugins } = this.parserOpts
+        if (
+          plugins?.some(
+            (p) => pluginName(p) === 'typescript' && !pluginOpts(p)?.dts
+          ) &&
+          !plugins?.some((p) => pluginName(p) === 'jsx')
+        ) {
+          return this
+        }
+        return this.removePlugins(
+          'flow',
+          'flowComments',
+          'decorators',
+          'jsx'
+        ).mergePlugins(['typescript', { dts: false }], 'decorators-legacy')
+      })())
     )
   }
 
   get forTsx(): Parser {
     return (
       this._forTsx ||
-      (this._forTsx = this.removePlugins(
-        'flow',
-        'flowComments',
-        'decorators'
-      ).mergePlugins(
-        ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
-        'decorators-legacy',
-        'jsx'
-      ))
+      (this._forTsx = (() => {
+        const { plugins } = this.parserOpts
+        if (
+          plugins?.some(
+            (p) => pluginName(p) === 'typescript' && !pluginOpts(p)?.dts
+          ) &&
+          plugins?.some((p) => pluginName(p) === 'jsx')
+        ) {
+          return this
+        }
+        return this.removePlugins(
+          'flow',
+          'flowComments',
+          'decorators'
+        ).mergePlugins(
+          ['typescript', { disallowAmbiguousJSXLike: true, dts: false }],
+          'decorators-legacy',
+          'jsx'
+        )
+      })())
     )
   }
 
   get forDts(): Parser {
     return (
       this._forDts ||
-      (this._forDts = this.removePlugins(
-        'flow',
-        'flowComments',
-        'decorators',
-        'jsx'
-      ).mergePlugins(['typescript', { dts: true }], 'decorators-legacy'))
+      (this._forDts = (() => {
+        if (
+          this.parserOpts.plugins?.some(
+            (p) => pluginName(p) === 'typescript' && pluginOpts(p)?.dts
+          )
+        ) {
+          return this
+        }
+        return this.removePlugins(
+          'flow',
+          'flowComments',
+          'decorators',
+          'jsx'
+        ).mergePlugins(['typescript', { dts: true }], 'decorators-legacy')
+      })())
     )
   }
 
   forExtension(e: string): Parser {
+    if (/(\.|^)([cm]?jsx)$/i.test(e)) return this.forJsx
     if (/(\.|^)([cm]?jsx?(\.flow)?)$/i.test(e)) return this.forJs
     if (/(\.|^)d\.ts$/i.test(e)) return this.forDts
     if (/(\.|^)[cm]?tsx$/i.test(e)) return this.forTsx
@@ -218,6 +274,7 @@ export const jsParser: Parser = new Parser(defaultBabelParser, {
     'topLevelAwait',
   ],
 })
+export const jsxParser: Parser = jsParser
 
 export const tsParser: Parser = jsParser.forTs
 export const tsxParser: Parser = jsParser.forTsx
@@ -352,7 +409,9 @@ export function getParserSync(file: string, options?: ParserOptions): Parser {
       }
     }
   )
-  return !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
+  return (
+    !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
+  ).forExtension(file)
 }
 
 export async function getParserAsync(
@@ -410,7 +469,9 @@ export async function getParserAsync(
       }
     }
   )
-  return !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
+  return (
+    !options || isEmpty(options) ? parser : parser.bindParserOpts(options)
+  ).forExtension(file)
 }
 
 export function parseSync(

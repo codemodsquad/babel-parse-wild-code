@@ -5,7 +5,7 @@ module.exports = function (api) {
     [
       '@babel/preset-env',
       api.env('es5')
-        ? { forceAllTransforms: true }
+        ? { targets: { node: '12' } }
         : {
             modules: process.env.OUTPUT_ESM ? false : 'auto',
             targets: { node: '12' },

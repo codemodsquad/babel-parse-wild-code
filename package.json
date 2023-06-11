@@ -3,6 +3,8 @@
   "version": "0.0.0-development",
   "description": "parse a file in a foreign directory with babel, using ambient babel config",
   "sideEffects": false,
+  "main": "./index.cjs",
+  "module": "./index.mjs",
   "exports": {
     "./package.json": "./package.json",
     ".": {

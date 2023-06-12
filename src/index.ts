@@ -357,6 +357,7 @@ function getExtname(file: string): string {
 }
 
 export function getParserSync(file: string, options?: ParserOptions): Parser {
+  file = Path.resolve(file)
   const parentDir = Path.dirname(file)
   const extname = getExtname(file)
   const parser = dirParserCache.getSync(
@@ -418,6 +419,7 @@ export async function getParserAsync(
   file: string,
   options?: ParserOptions
 ): Promise<Parser> {
+  file = Path.resolve(file)
   const parentDir = Path.dirname(file)
   const extname = getExtname(file)
 

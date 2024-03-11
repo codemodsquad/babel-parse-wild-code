@@ -261,6 +261,7 @@ export const jsParser: Parser = new Parser(defaultBabelParser, {
     'classStaticBlock',
     'dynamicImport',
     'exportNamespaceFrom',
+    'exportDefaultFrom',
     'functionSent',
     'importMeta',
     'logicalAssignment',

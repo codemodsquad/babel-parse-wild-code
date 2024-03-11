@@ -3,82 +3,12 @@
   "version": "0.0.0-development",
   "description": "parse a file in a foreign directory with babel, using ambient babel config",
   "sideEffects": false,
-  "main": "./index.cjs",
-  "module": "./index.mjs",
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "import": "./index.mjs",
-      "require": "./index.cjs"
-    }
-  },
-  "files": [
-    "index.mjs",
-    "index.cjs",
-    "index.d.ts",
-    "index.js.flow"
-  ],
   "scripts": {
-    "lint": "eslint $npm_package_config_lint",
-    "lint:fix": "eslint $npm_package_config_lint",
-    "prettier": "prettier --write $npm_package_config_prettier",
-    "prettier:check": "prettier --list-different $npm_package_config_prettier",
-    "tsc": "tsc",
     "tsc:watch": "npm run tsc -- --watch",
-    "clean": "rimraf lib *.js *.mjs *.cjs *.d.ts *.js.flow",
-    "build": "npm run clean && npm run build:types && npm run build:js",
-    "build:types": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.json --outDir es && copy 'src/**/*.js.flow' . && copy 'src/**/*.js.flow' es",
-    "build:js": "cross-env OUTPUT_ESM=1 babel src --out-dir . --out-file-extension .mjs --extensions \".ts\" --source-maps inline && cross-env BABEL_ENV=es5 babel src --out-dir . --out-file-extension .cjs --extensions \".ts\"",
-    "test": "cross-env NODE_ENV=test BABEL_ENV=es5 mocha $npm_package_config_mocha && cross-env NODE_ENV=test BABEL_ENV=coverage nyc --reporter=lcov --reporter=text mocha $npm_package_config_mocha",
-    "test:watch": "cross-env NODE_ENV=test BABEL_ENV=test mocha $npm_package_config_mocha --watch",
-    "test:debug": "cross-env NODE_ENV=test BABEL_ENV=test mocha --inspect-brk $npm_package_config_mocha",
-    "codecov": "nyc report --reporter=text-lcov > coverage.lcov; codecov",
-    "prepublishOnly": "npm run clean && npm run prettier:check && npm run lint && flow && npm test && npm run build",
-    "open:coverage": "open coverage/lcov-report/index.html",
-    "semantic-release": "semantic-release"
-  },
-  "config": {
-    "lint": "--cache --ext .js,.ts src test",
-    "mocha": "--extension js --extension ts test/configure.js 'src/**/*.spec.ts' 'test/*.ts'",
-    "prettier": ".babelrc.js *.{json,md} {src,test}/**/*.{js,ts,flow}",
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged && npm run lint && npm run tsc && flow",
-      "commit-msg": "commitlint -e $GIT_PARAMS",
-      "pre-push": "npm test"
-    }
-  },
-  "lint-staged": {
-    "*.{js,ts,json,css,md,flow}": [
-      "prettier --write"
-    ]
-  },
-  "commitlint": {
-    "extends": [
-      "@jedwards1211/commitlint-config"
-    ]
-  },
-  "prettier": {
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "nyc": {
-    "include": [
-      "src/**/*.ts"
-    ],
-    "exclude": [
-      "src/**/*.spec.ts"
-    ],
-    "require": [
-      "@babel/register"
-    ],
-    "sourceMap": false,
-    "instrument": false
+    "tc": "toolchain",
+    "toolchain": "toolchain",
+    "test": "toolchain test",
+    "prepublishOnly": "echo This package is meant to be published by semantic-release from the dist build directory. && exit 1"
   },
   "repository": {
     "type": "git",
@@ -91,60 +21,60 @@
   },
   "homepage": "https://github.com/codemodsquad/babel-parse-wild-code#readme",
   "devDependencies": {
-    "@babel/cli": "^7.18.10",
-    "@babel/core": "^7.19.0",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-export-default-from": "^7.18.10",
-    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
-    "@babel/plugin-proposal-object-rest-spread": "^7.18.9",
     "@babel/plugin-proposal-optional-chaining": "^7.18.9",
     "@babel/plugin-proposal-pipeline-operator": "^7.18.9",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.18.10",
-    "@babel/preset-env": "^7.19.0",
-    "@babel/preset-flow": "^7.18.6",
-    "@babel/preset-react": "^7.18.6",
-    "@babel/preset-typescript": "^7.18.6",
-    "@babel/register": "^7.18.9",
-    "@commitlint/cli": "^17.1.2",
-    "@commitlint/config-conventional": "^17.1.0",
-    "@jedwards1211/commitlint-config": "^1.0.2",
-    "@jedwards1211/eslint-config": "^2.0.2",
-    "@jedwards1211/eslint-config-typescript": "^2.0.2",
-    "@types/chai": "^4.3.3",
+    "@babel/plugin-syntax-flow": "^7.14.5",
+    "@babel/plugin-transform-react-jsx": "^7.14.9",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-flow": "^7.24.0",
+    "@babel/preset-react": "^7.23.3",
+    "@babel/preset-typescript": "^7.23.3",
+    "@jcoreio/eslint-plugin-implicit-dependencies": "^1.0.2",
+    "@jcoreio/toolchain": "^3.9.3",
+    "@jcoreio/toolchain-circle": "^3.9.3",
+    "@jcoreio/toolchain-esnext": "^3.9.3",
+    "@jcoreio/toolchain-flow": "^3.9.3",
+    "@jcoreio/toolchain-mocha": "^3.9.3",
+    "@jcoreio/toolchain-semantic-release": "^3.9.3",
+    "@jcoreio/toolchain-typescript": "^3.9.3",
+    "@types/chai": "^4.3.5",
     "@types/fs-extra": "^9.0.13",
-    "@types/mocha": "^9.1.1",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^18.7.16",
     "@types/resolve": "^1.20.2",
-    "@typescript-eslint/eslint-plugin": "^5.37.0",
-    "@typescript-eslint/parser": "^5.37.0",
+    "@typescript-eslint/eslint-plugin": "^5.60.0",
+    "@typescript-eslint/parser": "^5.60.0",
     "@typescript-eslint/typescript-estree": "^5.37.0",
-    "babel-eslint": "^10.1.0",
-    "babel-plugin-istanbul": "^6.1.1",
-    "chai": "^4.3.6",
-    "codecov": "^3.8.3",
+    "chai": "^4.3.7",
     "copy": "^0.3.2",
     "cross-env": "^7.0.3",
-    "eslint": "^8.23.1",
+    "eslint": "^8.43.0",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-flowtype": "^8.0.3",
     "flow-bin": "^0.186.0",
     "fs-extra": "^10.1.0",
-    "husky": "^8.0.1",
-    "istanbul": "^0.4.5",
-    "lint-staged": "^13.0.3",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
-    "prettier": "^2.7.1",
-    "prettier-eslint": "^15.0.1",
+    "mocha": "^10.2.0",
     "rimraf": "^3.0.2",
-    "semantic-release": "^19.0.5",
-    "typescript": "^4.8.3"
+    "typescript": "^5.1.0"
   },
   "dependencies": {
     "@babel/parser": "^7.19.0",
     "@babel/runtime": "^7.19.0",
     "@babel/types": "^7.19.0",
     "resolve": "^1.22.1"
-  }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@8.11.0"
 }

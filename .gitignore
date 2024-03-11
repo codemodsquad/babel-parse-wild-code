@@ -1,14 +1,4 @@
-/coverage
-/.nyc_output
+/dist
+.nyc_output
 node_modules
-/es
-.eslintcache
-*.js
-*.js.flow
-*.d.ts
-!/src/**/*.ts
-!/src/**/*.js
-!/src/**/*.js.flow
-!/test/**/*.ts
-!/test/**/*.js
-!/.babelrc.js
+/coverage
